@@ -10,6 +10,13 @@ __pycache__/
 .vscode/
 .idea/
 
+# Documents, wireframes, and report drafts (non-program files)
+*.pdf
+*.jpg
+*.jpeg
+*.png
+Template Laporan Proyek Akhir PCD.md
+
 # Temporary test files & archives
 pcd_basic_ops.py
 *.zip

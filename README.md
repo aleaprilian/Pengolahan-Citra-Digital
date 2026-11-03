@@ -87,8 +87,7 @@ GUI_app.ipynb
 │   ├── noise.py                        # Pembangkitan noise & filter restorasi
 │   ├── edge_detection.py               # Deteksi tepi gradient & kompas Kirsch
 │   └── segmentation.py                 # Thresholding Otsu, kontur, bounding box
-├── PCD WIREFRAME.pdf                   # Dokumen rancangan wireframe antarmuka
-├── Menu structure-Aplikasi-PCD.pdf     # Dokumen hierarki struktur menu acuan
-├── Template Laporan Proyek Akhir PCD.md # Draf laporan proyek akhir PCD
+├── .gitignore                          # Konfigurasi file yang diabaikan Git
 └── README.md                           # Dokumentasi proyek
 ```
+
