@@ -17,6 +17,10 @@ __pycache__/
 *.png
 Template Laporan Proyek Akhir PCD.md
 
+# Tkinter desktop program files (local only, excluded from GitHub repo)
+main.py
+GUI_app.ipynb
+
 # Temporary test files & archives
 pcd_basic_ops.py
 *.zip

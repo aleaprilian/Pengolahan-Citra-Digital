@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplikasi Pengolahan Citra Digital - Capstone Project (Flask Web Version)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* =========================================================================
+       RESET & BASE STYLES (SESUAI ESTETIKA MIRO & TKINTER)
+       ========================================================================= */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f8f9fa;
+      color: #222222;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* =========================================================================
+       1. TOP NAVBAR (PERSIS PCD WIREFRAME.pdf HALAMAN 1 - 8)
+       ========================================================================= */
+    header {
+      background-color: #ebebeb;
+      height: 46px;
+      min-height: 46px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 6px;
+      border-bottom: 1px solid #d5d5d5;
+      position: relative;
+      z-index: 50;
+    }
+
+    /* Dropdown File Button */
+    .dropdown-container {
+      position: relative;
+      display: inline-block;
+    }
+    .file-btn {
+      background: #ffffff;
+      border: 1px solid #444444;
+      border-radius: 3px;
+      font-weight: 700;
+      font-size: 13px;
+      color: #222222;
+      padding: 4px 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease;
+    }
+    .file-btn:hover { background: #f0f0f0; }
+
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      margin-top: 2px;
+      background: #ffffff;
+      border: 1px solid #cccccc;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border-radius: 4px;
+      min-width: 190px;
+      padding: 4px 0;
+      z-index: 100;
+    }
+    .dropdown-menu.show { display: block; }
+    .dropdown-item {
+      padding: 7px 16px;
+      font-size: 12px;
+      color: #333333;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dropdown-item:hover { background: #e5e7eb; color: #111111; }
+    .dropdown-divider { height: 1px; background: #e5e7eb; margin: 4px 0; }
+
+    /* Nav Tab Buttons */
+    .nav-tabs {
+      display: flex;
+      gap: 3px;
+      margin-left: 6px;
+    }
+    .tab-btn {
+      background: #ebebeb;
+      border: none;
+      padding: 7px 15px;
+      font-size: 13px;
+      color: #444444;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all 0.15s ease;
+      font-family: inherit;
+    }
+    .tab-btn:hover { background: #dedede; color: #111111; }
+    .tab-btn.active {
+      background: #dddddd;
+      font-weight: 700;
+      color: #111111;
+    }
+
+    /* =========================================================================
+       2. AREA DISPLAY KANVAS (SINGLE VS DUAL MODE)
+       ========================================================================= */
+    .display-area {
+      flex: 1;
+      display: flex;
+      padding: 12px 16px;
+      gap: 12px;
+      background: #ffffff;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .image-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      min-width: 0;
+      transition: all 0.2s ease;
+    }
+    .image-card.hidden { display: none; }
+
+    .canvas-frame {
+      flex: 1;
+      border: 1px solid #444444;
+      background: #ffffff;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      cursor: default;
+    }
+    .canvas-frame.clickable { cursor: pointer; }
+
+    /* Citra Asli, Citra Kedua, Citra Hasil */
+    .canvas-frame img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      display: none;
+      pointer-events: none;
+    }
+    .canvas-frame.has-image img { display: block; }
+    .canvas-frame.has-image .wireframe-placeholder { display: none; }
+
+    /* Interactive Crop Overlay */
+    .crop-overlay {
+      position: absolute;
+      border: 2px dashed #ef4444;
+      background: rgba(239, 68, 68, 0.15);
+      display: none;
+      pointer-events: none;
+    }
+
+    /* Rangka Wireframe Garis Silang (X) Persis Miro PCD WIREFRAME.pdf */
+    .wireframe-placeholder {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .wireframe-placeholder svg {
+      width: 100%; height: 100%;
+      position: absolute;
+      top: 0; left: 0;
+    }
+    .wireframe-badge {
+      position: relative;
+      background: #ffffff;
+      border: 1px solid #cccccc;
+      padding: 4px 18px;
+      font-weight: 700;
+      font-size: 13px;
+      color: #333333;
+      z-index: 2;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    .status-caption {
+      padding: 4px 2px 0 2px;
+      font-size: 12px;
+      color: #666666;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* =========================================================================
+       3. CONTEXTUAL CONTROL PANEL (PERSIS WIREFRAME ABU-ABU)
+       ========================================================================= */
+    .control-panel {
+      background: #f0f1f4;
+      border-top: 1px solid #d5d8de;
+      padding: 8px 24px 6px 24px;
+      height: 215px;
+      min-height: 215px;
+      display: flex;
+      flex-direction: column;
+    }
+    .panel-header-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #333333;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .panel-content-tab {
+      display: none;
+      width: 100%;
+      align-items: flex-start;
+    }
+    .panel-content-tab.active { display: grid; }
+
+    /* Basic Operation: 5 Kolom Grid Presisi dengan Jarak Gap 24px (Mencegah Bersinggungan) */
+    #tab-basic {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 24px;
+    }
+
+    #tab-enhancement {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 24px;
+    }
+
+    #tab-noise {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 24px;
+    }
+
+    #tab-edge {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 24px;
+    }
+
+    #tab-segmentation {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    #tab-about {
+      display: none;
+      width: 100%;
+      height: 100%;
+    }
+    #tab-about.active { display: flex; }
+
+    .ctrl-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+      width: 100%;
+    }
+    .ctrl-col label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #222222;
+      margin-top: 1px;
+    }
+    .ctrl-col select {
+      width: 100%;
+      padding: 4px 6px;
+      font-size: 12px;
+      border: 1px solid #cccccc;
+      border-radius: 2px;
+      background: #ffffff;
+      outline: none;
+      font-family: inherit;
+    }
+    .ctrl-col select:focus, .ctrl-col input:focus {
+      border-color: #3b82f6;
+    }
+
+    /* Slider Row */
+    .slider-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .slider-wrap input[type="range"] {
+      width: 100%;
+      height: 4px;
+      cursor: pointer;
+      accent-color: #555555;
+    }
+    .slider-value-text {
+      font-size: 11px;
+      color: #555555;
+      margin-top: 1px;
+    }
+
+    /* Zoom Row with minus & plus */
+    .zoom-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .zoom-btn-sign {
+      font-size: 14px;
+      font-weight: 700;
+      color: #333333;
+      cursor: pointer;
+    }
+
+    /* Crop Grid Inputs (Presisi, Responsif, & Tidak Melebar) */
+    .crop-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 6px;
+      width: 100%;
+    }
+    .crop-grid input {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      padding: 4px 6px;
+      font-size: 11px;
+      text-align: center;
+      border: 1px solid #cccccc;
+      border-radius: 2px;
+      background: #ffffff;
+      outline: none;
+      font-family: inherit;
+    }
+    .crop-grid input::placeholder {
+      color: #888888;
+      font-size: 11px;
+      font-style: italic;
+      opacity: 1;
+    }
+    .btn-select-crop {
+      width: 100%;
+      background: #9e9e9e;
+      color: #ffffff;
+      border: none;
+      padding: 5px 8px;
+      font-size: 11px;
+      border-radius: 2px;
+      cursor: pointer;
+      margin-top: 4px;
+      transition: background 0.15s ease;
+      font-family: inherit;
+    }
+    .btn-select-crop:hover { background: #757575; }
+    .btn-select-crop.active { background: #10b981; }
+
+    /* Checkbox Row */
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    .check-row input[type="checkbox"] { cursor: pointer; }
+
+    /* About Card */
+    .about-card-view {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 10px 16px;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .about-header-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .about-sub-text {
+      font-size: 11px;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+    .about-split {
+      display: flex;
+      gap: 16px;
+      flex: 1;
+    }
+    .about-box {
+      flex: 1;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    .about-box-title {
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 4px;
+    }
+    .btn-link-yt {
+      background: #ef4444;
+      color: #ffffff;
+      border: none;
+      padding: 5px 12px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: block;
+      width: 100%;
+      text-align: center;
+      margin-top: 4px;
+      text-decoration: none;
+    }
+    .btn-link-gh {
+      background: #0f172a;
+      color: #ffffff;
+      border: none;
+      padding: 5px 12px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: block;
+      width: 100%;
+      text-align: center;
+      margin-top: 4px;
+      text-decoration: none;
+    }
+
+    /* =========================================================================
+       4. TOMBOL AKSI BAWAH: RESET & APPLY (PILL BUTTON HITAM)
+       ========================================================================= */
+    footer.bottom-bar {
+      background: #f8f9fa;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      border-top: 1px solid #e5e7eb;
+    }
+    .btn-pill {
+      background: #1a1a1a;
+      color: #ffffff;
+      border: none;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 6px 36px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: inherit;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .btn-pill:hover { background: #333333; }
+    .btn-pill:active { background: #000000; transform: scale(0.98); }
+
+    /* Modal Histogram */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-card {
+      background: #ffffff;
+      width: 580px;
+      border-radius: 6px;
+      padding: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .modal-header h3 { font-size: 14px; font-weight: 700; }
+    .modal-close {
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: 700;
+      color: #777;
+    }
+    canvas#histCanvas {
+      width: 100%;
+      height: 240px;
+      background: #fafafa;
+      border: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =======================================================================
+       1. TOP NAVBAR (FILE DROPDOWN + 6 TABS)
+       ======================================================================= -->
+  <header>
+    <div class="dropdown-container">
+      <div class="file-btn" onclick="toggleFileDropdown(event)">
+        File ▾
+      </div>
+      <div class="dropdown-menu" id="fileDropdown">
+        <div class="dropdown-item" onclick="triggerFileInput('orig')">📂 Browse File...</div>
+        <div class="dropdown-item" onclick="triggerFileInput('sec')">📂 Open Image 2 (Dual Mode)...</div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item" onclick="saveProcessedImage()">💾 Save Image</div>
+        <div class="dropdown-item" onclick="saveProcessedImage()">💾 Save As...</div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item" onclick="location.reload()">🚪 Exit / Reset Sesi</div>
+      </div>
+    </div>
+
+    <nav class="nav-tabs">
+      <button class="tab-btn active" onclick="switchNavbarTab('Basic Operation', event)">Basic Operation</button>
+      <button class="tab-btn" onclick="switchNavbarTab('Enhancement', event)">Enhancement</button>
+      <button class="tab-btn" onclick="switchNavbarTab('Noise', event)">Noise</button>
+      <button class="tab-btn" onclick="switchNavbarTab('Edge Detection', event)">Edge Detection</button>
+      <button class="tab-btn" onclick="switchNavbarTab('Segmentation', event)">Segmentation</button>
+      <button class="tab-btn" onclick="switchNavbarTab('About', event)">About</button>
+    </nav>
+  </header>
+
+  <!-- HIDDEN INPUT FILES -->
+  <input type="file" id="fileInputOrig" accept="image/*" style="display:none;" onchange="handleFileChange(event, 'orig')">
+  <input type="file" id="fileInputSec" accept="image/*" style="display:none;" onchange="handleFileChange(event, 'sec')">
+
+  <!-- =======================================================================
+       2. DISPLAY CANVAS AREA (SINGLE VS DUAL MODE)
+       ======================================================================= -->
+  <main class="display-area">
+    <!-- Box 1: Original Image -->
+    <div class="image-card" id="cardOrig">
+      <div class="canvas-frame clickable" id="frameOrig" onclick="onCanvasClick(event, 'orig')" title="Klik untuk memuat Citra Utama atau drag seleksi crop">
+        <img id="imgOrig" alt="Original Image">
+        <div class="crop-overlay" id="cropBox"></div>
+        <div class="wireframe-placeholder">
+          <svg preserveAspectRatio="none" viewBox="0 0 100 100">
+            <line x1="0" y1="0" x2="100" y2="100" stroke="#888888" stroke-width="0.7"/>
+            <line x1="0" y1="100" x2="100" y2="0" stroke="#888888" stroke-width="0.7"/>
+          </svg>
+          <div class="wireframe-badge">Original Image</div>
+        </div>
+      </div>
+      <div class="status-caption" id="lblStatusOrig">Idle: Ready to load an image</div>
+    </div>
+
+    <!-- Box 2: Secondary Image (Dual Mode Basic Ops) -->
+    <div class="image-card" id="cardSec">
+      <div class="canvas-frame clickable" id="frameSec" onclick="triggerFileInput('sec')" title="Klik untuk memuat Citra Kedua">
+        <img id="imgSec" alt="Secondary Image">
+        <div class="wireframe-placeholder">
+          <svg preserveAspectRatio="none" viewBox="0 0 100 100">
+            <line x1="0" y1="0" x2="100" y2="100" stroke="#888888" stroke-width="0.7"/>
+            <line x1="0" y1="100" x2="100" y2="0" stroke="#888888" stroke-width="0.7"/>
+          </svg>
+          <div class="wireframe-badge">Secondary Image</div>
+        </div>
+      </div>
+      <div class="status-caption" id="lblStatusSec">Click to load Image 2</div>
+    </div>
+
+    <!-- Box 3: Processed Image -->
+    <div class="image-card" id="cardProc">
+      <div class="canvas-frame" id="frameProc">
+        <img id="imgProc" alt="Processed Image Output">
+        <div class="wireframe-placeholder">
+          <svg preserveAspectRatio="none" viewBox="0 0 100 100">
+            <line x1="0" y1="0" x2="100" y2="100" stroke="#888888" stroke-width="0.7"/>
+            <line x1="0" y1="100" x2="100" y2="0" stroke="#888888" stroke-width="0.7"/>
+          </svg>
+          <div class="wireframe-badge">Processed Image</div>
+        </div>
+      </div>
+      <div class="status-caption" id="lblStatusProc">Processed Image Output</div>
+    </div>
+  </main>
+
+  <!-- =======================================================================
+       3. CONTEXTUAL CONTROL PANEL (PERSIS WIREFRAME 8 HALAMAN)
+       ======================================================================= -->
+  <section class="control-panel">
+    <div class="panel-header-title">Contextual Control Panel</div>
+
+    <!-- --- TAB 1: BASIC OPERATION (Wireframe Hal. 3) --- -->
+    <div class="panel-content-tab active" id="tab-basic">
+      <!-- Kolom 1: Brightness & Contrast -->
+      <div class="ctrl-col">
+        <label>Brightness</label>
+        <div class="slider-wrap">
+          <input type="range" id="b_bright" min="-255" max="255" value="25" oninput="updateValText('lbl_bright_val', this.value, true)">
+          <div class="slider-value-text" id="lbl_bright_val">Value : +25</div>
+        </div>
+
+        <label style="margin-top:6px;">Contrast</label>
+        <div class="slider-wrap">
+          <input type="range" id="b_contrast" min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateValText('lbl_contrast_val', parseFloat(this.value).toFixed(1)+'x', true)">
+          <div class="slider-value-text" id="lbl_contrast_val">Value : +1.0x</div>
+        </div>
+      </div>
+
+      <!-- Kolom 2: Colouring & Zoom -->
+      <div class="ctrl-col">
+        <label>Colouring</label>
+        <select id="b_colouring">
+          <option value="RGB">RGB</option>
+          <option value="Grayscale">Grayscale</option>
+          <option value="Binary">Binary</option>
+          <option value="HSV">HSV</option>
+          <option value="CMY">CMY</option>
+          <option value="YUV">YUV</option>
+          <option value="YIQ">YIQ</option>
+          <option value="Pseudo">Pseudo Color</option>
+        </select>
+
+        <label style="margin-top:8px;">Zoom</label>
+        <div class="zoom-row">
+          <span class="zoom-btn-sign">—</span>
+          <input type="range" id="b_zoom" min="0.2" max="3.0" step="0.1" value="1.0" style="flex:1;">
+          <span class="zoom-btn-sign">+</span>
+        </div>
+      </div>
+
+      <!-- Kolom 3: Crop -->
+      <div class="ctrl-col">
+        <label>Crop</label>
+        <div class="crop-grid">
+          <input type="text" id="crop_x1" placeholder="Input X1">
+          <input type="text" id="crop_y1" placeholder="Input Y1">
+          <input type="text" id="crop_x2" placeholder="Input X2">
+          <input type="text" id="crop_y2" placeholder="Input Y2">
+        </div>
+        <button class="btn-select-crop" id="btnCropSelect" onclick="toggleCropSelect()">Select on canvas</button>
+      </div>
+
+      <!-- Kolom 4: Rotate & Flip -->
+      <div class="ctrl-col">
+        <label>Rotate</label>
+        <select id="b_rotate">
+          <option value="No Rotate">No Rotate</option>
+          <option value="90° CW">90° CW</option>
+          <option value="180°">180°</option>
+          <option value="270° CW">270° CW</option>
+          <option value="Custom: 45°">Custom: 45°</option>
+        </select>
+
+        <label style="margin-top:8px;">Flip</label>
+        <select id="b_flip">
+          <option value="No Flip">No Flip</option>
+          <option value="Horizontal">Horizontal</option>
+          <option value="Vertical">Vertical</option>
+          <option value="Both">Both</option>
+        </select>
+      </div>
+
+      <!-- Kolom 5: Boolean, Arithmetic, & Invert -->
+      <div class="ctrl-col">
+        <label>Boolean</label>
+        <select id="b_bool">
+          <option value="None">None</option>
+          <option value="AND" selected>AND</option>
+          <option value="OR">OR</option>
+          <option value="XOR">XOR</option>
+          <option value="NOT">NOT</option>
+        </select>
+
+        <label style="margin-top:4px;">Arithmetic</label>
+        <select id="b_arith">
+          <option value="None">None</option>
+          <option value="Add (+)" selected>Add (+)</option>
+          <option value="Subtract (-)">Subtract (-)</option>
+          <option value="Multiply (*)">Multiply (*)</option>
+          <option value="Divide (/)">Divide (/)</option>
+        </select>
+
+        <label class="check-row" style="margin-top:6px; justify-content: flex-end;">
+          <input type="checkbox" id="b_invert"> Invert
+        </label>
+      </div>
+    </div>
+
+    <!-- --- TAB 2: ENHANCEMENT (Wireframe Hal. 4) --- -->
+    <div class="panel-content-tab" id="tab-enhancement">
+      <!-- Kolom 1: Filtering Method & Sigma -->
+      <div class="ctrl-col">
+        <label>Filtering Method</label>
+        <select id="e_filter">
+          <option value="Gaussian Filter">Gaussian Filter</option>
+          <option value="Average Filter">Average Filter</option>
+          <option value="Median Filter">Median Filter</option>
+          <option value="Bilateral Filter">Bilateral Filter</option>
+        </select>
+
+        <label style="margin-top:6px;">Sigma</label>
+        <div class="slider-wrap">
+          <input type="range" id="e_sigma" min="0.1" max="20.0" step="0.5" value="2.5" oninput="updateValText('lbl_sigma_val', parseFloat(this.value).toFixed(0), true)">
+          <div class="slider-value-text" id="lbl_sigma_val">Value : +25</div>
+        </div>
+      </div>
+
+      <!-- Kolom 2: Kernel Mask -->
+      <div class="ctrl-col">
+        <label>Kernel Mask</label>
+        <select id="e_kernel">
+          <option value="3x3" selected>3x3</option>
+          <option value="5x5">5x5</option>
+          <option value="7x7">7x7</option>
+          <option value="9x9">9x9</option>
+        </select>
+      </div>
+
+      <!-- Kolom 3: Sharpening & Strength -->
+      <div class="ctrl-col">
+        <label>Sharpening</label>
+        <select id="e_sharp">
+          <option value="None">None</option>
+          <option value="Laplacian" selected>Laplacian</option>
+          <option value="Unsharp Masking">Unsharp Masking</option>
+          <option value="Highpass">Highpass</option>
+          <option value="Highboost">Highboost</option>
+        </select>
+
+        <label style="margin-top:6px;">Strength</label>
+        <div class="slider-wrap">
+          <input type="range" id="e_strength" min="0.1" max="3.0" step="0.1" value="1.5" oninput="updateValText('lbl_sharp_val', parseFloat(this.value).toFixed(1), true)">
+          <div class="slider-value-text" id="lbl_sharp_val">Value : +1.5</div>
+        </div>
+      </div>
+
+      <!-- Kolom 4: Equalization & Histogram Toggle -->
+      <div class="ctrl-col">
+        <label>Equalization</label>
+        <select id="e_equalize">
+          <option value="None">None</option>
+          <option value="Global" selected>Global</option>
+          <option value="CLAHE">CLAHE</option>
+        </select>
+
+        <label style="margin-top:8px;">Histogram Graph</label>
+        <label class="check-row">
+          <input type="checkbox" id="e_hist_toggle" checked onchange="toggleHistogramModal(this.checked)"> Show Histogram
+        </label>
+      </div>
+    </div>
+
+    <!-- --- TAB 3: NOISE (Wireframe Hal. 5) --- -->
+    <div class="panel-content-tab" id="tab-noise">
+      <!-- Kolom 1: Noise Type -->
+      <div class="ctrl-col">
+        <label>Noise Type</label>
+        <select id="n_type">
+          <option value="None">None</option>
+          <option value="Salt & Pepper" selected>Salt & Pepper</option>
+          <option value="Gaussian Noise">Gaussian Noise</option>
+          <option value="Rayleigh Noise">Rayleigh Noise</option>
+          <option value="Erlang (Gamma) Noise">Erlang (Gamma) Noise</option>
+          <option value="Exponential Noise">Exponential Noise</option>
+          <option value="Uniform Noise">Uniform Noise</option>
+        </select>
+      </div>
+
+      <!-- Kolom 2: Noise Ratio -->
+      <div class="ctrl-col">
+        <label>Noise Ratio</label>
+        <div class="slider-wrap">
+          <input type="range" id="n_ratio" min="0.01" max="0.50" step="0.01" value="0.25" oninput="updateValText('lbl_noise_val', parseFloat(this.value).toFixed(2), true)">
+          <div class="slider-value-text" id="lbl_noise_val">Value : +0.25</div>
+        </div>
+      </div>
+
+      <!-- Kolom 3: Restoration -->
+      <div class="ctrl-col">
+        <label>Restoration</label>
+        <select id="n_resto">
+          <option value="None">None</option>
+          <option value="Median Filter" selected>Median Filter</option>
+          <option value="Mean Filter">Mean Filter</option>
+          <option value="Gaussian Filter">Gaussian Filter</option>
+          <option value="Bilateral Filter">Bilateral Filter</option>
+        </select>
+      </div>
+
+      <!-- Kolom 4: Kernel Size -->
+      <div class="ctrl-col">
+        <label>Kernel Size</label>
+        <select id="n_ksize">
+          <option value="3x3" selected>3x3</option>
+          <option value="5x5">5x5</option>
+          <option value="7x7">7x7</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- --- TAB 4: EDGE DETECTION (Wireframe Hal. 6) --- -->
+    <div class="panel-content-tab" id="tab-edge">
+      <!-- Kolom 1: Direction -->
+      <div class="ctrl-col">
+        <label>Direction</label>
+        <select id="ed_dir">
+          <option value="Horizontal" selected>Horizontal</option>
+          <option value="Vertical">Vertical</option>
+          <option value="Magnitude">Magnitude</option>
+        </select>
+      </div>
+
+      <!-- Kolom 2: Edge Operator & Kernel Size -->
+      <div class="ctrl-col">
+        <label>Edge Operator</label>
+        <select id="ed_op">
+          <option value="Canny" selected>Canny</option>
+          <option value="Sobel">Sobel</option>
+          <option value="Prewitt">Prewitt</option>
+          <option value="Robert">Robert</option>
+          <option value="Laplacian">Laplacian</option>
+          <option value="LoG">Laplacian of Gaussian (LoG)</option>
+          <option value="Compass">Compass (Kirsch 8 Directions)</option>
+        </select>
+
+        <label style="margin-top:6px;">Kernel Size</label>
+        <select id="ed_ksize">
+          <option value="3x3" selected>3x3</option>
+          <option value="5x5">5x5</option>
+          <option value="7x7">7x7</option>
+        </select>
+      </div>
+
+      <!-- Kolom 3: Lower Threshold -->
+      <div class="ctrl-col">
+        <label>Lower Threshold</label>
+        <div class="slider-wrap">
+          <input type="range" id="ed_low_t" min="0" max="255" value="10" oninput="updateValText('lbl_low_t_val', this.value, false)">
+          <div class="slider-value-text" id="lbl_low_t_val">Value : 10</div>
+        </div>
+      </div>
+
+      <!-- Kolom 4: Upper Threshold -->
+      <div class="ctrl-col">
+        <label>Upper Threshold</label>
+        <div class="slider-wrap">
+          <input type="range" id="ed_up_t" min="0" max="255" value="50" oninput="updateValText('lbl_up_t_val', this.value, false)">
+          <div class="slider-value-text" id="lbl_up_t_val">Value : 50</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- --- TAB 5: SEGMENTATION (Wireframe Hal. 7) --- -->
+    <div class="panel-content-tab" id="tab-segmentation">
+      <!-- Kolom 1: Binary Method & Threshold Value -->
+      <div class="ctrl-col">
+        <label>Binary Method</label>
+        <select id="seg_method" onchange="onSegMethodChange(this.value)">
+          <option value="Manual" selected>Manual</option>
+          <option value="Otsu">Otsu's Thresholding (Auto)</option>
+          <option value="Adaptive Mean">Adaptive Mean</option>
+          <option value="Adaptive Gaussian">Adaptive Gaussian</option>
+        </select>
+
+        <label style="margin-top:6px;">Threshold Value</label>
+        <div class="slider-wrap">
+          <input type="range" id="seg_thresh" min="0" max="255" value="50" oninput="updateValText('lbl_thresh_val', this.value, false)">
+          <div class="slider-value-text" id="lbl_thresh_val">Value : 50</div>
+        </div>
+      </div>
+
+      <!-- Kolom 2: Threshold Type & Contour Color -->
+      <div class="ctrl-col">
+        <label>Threshold Type</label>
+        <select id="seg_thresh_type">
+          <option value="Thresh Binary" selected>Thresh Binary</option>
+          <option value="Thresh Binary Inv">Thresh Binary Inv</option>
+        </select>
+
+        <label style="margin-top:6px;">Contour Color</label>
+        <select id="seg_contour_col">
+          <option value="Green" selected>Green</option>
+          <option value="Red">Red</option>
+          <option value="Blue">Blue</option>
+          <option value="Yellow">Yellow</option>
+          <option value="Cyan">Cyan</option>
+        </select>
+      </div>
+
+      <!-- Kolom 3: Draw Contours & Line Thickness -->
+      <div class="ctrl-col">
+        <label class="check-row" style="margin-top:2px;">
+          <input type="checkbox" id="seg_draw_cnt" checked> Draw Contours
+        </label>
+
+        <label style="margin-top:6px;">Line Thickness</label>
+        <div class="slider-wrap">
+          <input type="range" id="seg_thick" min="1" max="5" value="2" oninput="updateValText('lbl_thick_val', this.value, false)">
+          <div class="slider-value-text" id="lbl_thick_val">Value : 2</div>
+        </div>
+      </div>
+
+      <!-- Kolom 4: Retrieval Mode & Draw Bounding Boxes -->
+      <div class="ctrl-col">
+        <label>Retrieval Mode</label>
+        <select id="seg_retrieval">
+          <option value="RETR External" selected>RETR External</option>
+          <option value="RETR Tree">RETR Tree</option>
+        </select>
+
+        <label class="check-row" style="margin-top:14px;">
+          <input type="checkbox" id="seg_draw_bb" checked> Draw Bounding Boxes
+        </label>
+      </div>
+    </div>
+
+    <!-- --- TAB 6: ABOUT (Wireframe Hal. 8) --- -->
+    <div class="panel-content-tab" id="tab-about">
+      <div class="about-card-view">
+        <div>
+          <div class="about-header-text">Aplikasi Pengolahan Citra Digital (PCD) Desktop GUI v1.0</div>
+          <div class="about-sub-text">Dibangun Menggunakan: Python 3.11 | Flask Microframework | OpenCV | Pillow | NumPy</div>
+        </div>
+        <div class="about-split">
+          <div class="about-box">
+            <div class="about-box-title">TIM PENGEMBANG (DEVELOPERS):</div>
+            <div>1. Ale Aprilian Putra Anton (Ketua / Integrasi Kode) - NIM: 2407114008</div>
+            <div>2. Raditya Yhori Pratama (Desain UI & Dokumentasi) - NIM: 2407110797</div>
+            <div>3. Wan Nabil Muzakhy (Algoritma PCD & Analisis) - NIM: 2407127390</div>
+          </div>
+          <div class="about-box">
+            <div class="about-box-title">TAUTAN PROYEK & TUTORIAL:</div>
+            <a href="https://www.youtube.com" target="_blank" class="btn-link-yt">▶ Watch Video Tutorial on YouTube</a>
+            <a href="https://github.com/aleaprilian/Pengolahan-Citra-Digital" target="_blank" class="btn-link-gh">💻 View Source Code on GitHub</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =======================================================================
+       4. BOTTOM ACTION BUTTONS: RESET & APPLY (PILL BUTTONS)
+       ======================================================================= -->
+  <footer class="bottom-bar">
+    <button class="btn-pill" onclick="onResetClicked()">Reset</button>
+    <button class="btn-pill" onclick="onApplyClicked()">Apply</button>
+  </footer>
+
+  <!-- MODAL HISTOGRAM -->
+  <div class="modal-overlay" id="modalHistogram">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Histogram Citra (Visualisasi Distribusi Piksel)</h3>
+        <span class="modal-close" onclick="toggleHistogramModal(false)">&times;</span>
+      </div>
+      <canvas id="histCanvas"></canvas>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       5. JAVASCRIPT LOGIC (AJAX PROCESS, EVENT HANDLING, CROP DRAG)
+       ======================================================================= -->
+  <script>
+    let activeNavbarTab = "Basic Operation";
+    let rawOrigBase64 = null;
+    let rawSecBase64 = null;
+    let isSelectingCrop = false;
+    let cropStart = null;
+    let cropEnd = null;
+
+    // Helper update teks slider
+    function updateValText(elemId, val, showPlus) {
+      const el = document.getElementById(elemId);
+      if (!el) return;
+      if (showPlus && !isNaN(val) && parseFloat(val) > 0) {
+        el.innerText = `Value : +${val}`;
+      } else {
+        el.innerText = `Value : ${val}`;
+      }
+    }
+
+    // Dropdown File Menu
+    function toggleFileDropdown(e) {
+      e.stopPropagation();
+      document.getElementById('fileDropdown').classList.toggle('show');
+    }
+    window.addEventListener('click', () => {
+      document.getElementById('fileDropdown').classList.remove('show');
+    });
+
+    // Pindah Tab Navbar
+    function switchNavbarTab(tabName, event) {
+      activeNavbarTab = tabName;
+
+      // Update button styling
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      if (event && event.target) {
+        event.target.classList.add('active');
+      }
+
+      // Tampilkan/sembunyikan panel konten
+      document.querySelectorAll('.panel-content-tab').forEach(p => p.classList.remove('active'));
+      const idMap = {
+        "Basic Operation": "tab-basic",
+        "Enhancement": "tab-enhancement",
+        "Noise": "tab-noise",
+        "Edge Detection": "tab-edge",
+        "Segmentation": "tab-segmentation",
+        "About": "tab-about"
+      };
+      const activeP = document.getElementById(idMap[tabName]);
+      if (activeP) activeP.classList.add('active');
+
+      // Tampilkan Dual Mode (Slot Secondary Image) HANYA pada Basic Operation
+      const cardSec = document.getElementById('cardSec');
+      if (tabName === "Basic Operation") {
+        cardSec.classList.remove('hidden');
+      } else {
+        cardSec.classList.add('hidden');
+      }
+
+      console.log(`[Navbar] Beralih ke Tab: '${tabName}'`);
+    }
+
+    // Input File Triggers
+    function triggerFileInput(type) {
+      if (type === 'orig') {
+        document.getElementById('fileInputOrig').click();
+      } else {
+        document.getElementById('fileInputSec').click();
+      }
+    }
+
+    function handleFileChange(event, type) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const b64 = e.target.result;
+        if (type === 'orig') {
+          rawOrigBase64 = b64;
+          const img = document.getElementById('imgOrig');
+          img.src = b64;
+          img.onload = function() {
+            document.getElementById('frameOrig').classList.add('has-image');
+            document.getElementById('lblStatusOrig').innerText = `Image Loaded : ${file.name} (${img.naturalWidth}x${img.naturalHeight} px)`;
+
+            // Biarkan input crop tetap kosong agar placeholder 'Input X1', dsb tetap tampil
+            document.getElementById('crop_x1').value = "";
+            document.getElementById('crop_y1').value = "";
+            document.getElementById('crop_x2').value = "";
+            document.getElementById('crop_y2').value = "";
+
+            // Preview awal ke output
+            const proc = document.getElementById('imgProc');
+            proc.src = b64;
+            document.getElementById('frameProc').classList.add('has-image');
+            document.getElementById('lblStatusProc').innerText = "Status: Image Loaded successfully (Ready to process)";
+          };
+        } else {
+          rawSecBase64 = b64;
+          const img = document.getElementById('imgSec');
+          img.src = b64;
+          img.onload = function() {
+            document.getElementById('frameSec').classList.add('has-image');
+            document.getElementById('lblStatusSec').innerText = `Image Loaded : ${file.name} (${img.naturalWidth}x${img.naturalHeight} px)`;
+          };
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Reset Action
+    function onResetClicked() {
+      if (!rawOrigBase64) return;
+      const proc = document.getElementById('imgProc');
+      proc.src = rawOrigBase64;
+      document.getElementById('lblStatusProc').innerText = "Status: Reset to original image";
+      document.getElementById('crop_x1').value = "";
+      document.getElementById('crop_y1').value = "";
+      document.getElementById('crop_x2').value = "";
+      document.getElementById('crop_y2').value = "";
+      console.log("[Event] Reset to original image");
+    }
+
+    // Interactive Crop on Canvas
+    function toggleCropSelect() {
+      if (!rawOrigBase64) {
+        alert("Muat citra asli terlebih dahulu sebelum memilih area crop!");
+        return;
+      }
+      isSelectingCrop = !isSelectingCrop;
+      const btn = document.getElementById('btnCropSelect');
+      if (isSelectingCrop) {
+        btn.classList.add('active');
+        btn.innerText = "Dragging on canvas...";
+        document.getElementById('frameOrig').style.cursor = "crosshair";
+      } else {
+        btn.classList.remove('active');
+        btn.innerText = "Select on canvas";
+        document.getElementById('frameOrig').style.cursor = "default";
+      }
+    }
+
+    const frameOrig = document.getElementById('frameOrig');
+    const cropBox = document.getElementById('cropBox');
+
+    frameOrig.addEventListener('mousedown', (e) => {
+      if (!isSelectingCrop || !rawOrigBase64) return;
+      const rect = frameOrig.getBoundingClientRect();
+      cropStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      cropBox.style.left = cropStart.x + "px";
+      cropBox.style.top = cropStart.y + "px";
+      cropBox.style.width = "0px";
+      cropBox.style.height = "0px";
+      cropBox.style.display = "block";
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isSelectingCrop || !cropStart) return;
+      const rect = frameOrig.getBoundingClientRect();
+      const curX = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+      const curY = Math.min(Math.max(0, e.clientY - rect.top), rect.height);
+
+      const left = Math.min(cropStart.x, curX);
+      const top = Math.min(cropStart.y, curY);
+      const width = Math.abs(curX - cropStart.x);
+      const height = Math.abs(curY - cropStart.y);
+
+      cropBox.style.left = left + "px";
+      cropBox.style.top = top + "px";
+      cropBox.style.width = width + "px";
+      cropBox.style.height = height + "px";
+    });
+
+    window.addEventListener('mouseup', (e) => {
+      if (!isSelectingCrop || !cropStart) return;
+      const img = document.getElementById('imgOrig');
+      const rect = frameOrig.getBoundingClientRect();
+
+      const curX = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+      const curY = Math.min(Math.max(0, e.clientY - rect.top), rect.height);
+
+      const x1 = Math.round((Math.min(cropStart.x, curX) / rect.width) * img.naturalWidth);
+      const x2 = Math.round((Math.max(cropStart.x, curX) / rect.width) * img.naturalWidth);
+      const y1 = Math.round((Math.min(cropStart.y, curY) / rect.height) * img.naturalHeight);
+      const y2 = Math.round((Math.max(cropStart.y, curY) / rect.height) * img.naturalHeight);
+
+      document.getElementById('crop_x1').value = x1;
+      document.getElementById('crop_y1').value = y1;
+      document.getElementById('crop_x2').value = x2;
+      document.getElementById('crop_y2').value = y2;
+
+      cropStart = null;
+      toggleCropSelect();
+    });
+
+    function onCanvasClick(event, type) {
+      if (isSelectingCrop) return;
+      if (type === 'orig' && !rawOrigBase64) {
+        triggerFileInput('orig');
+      }
+    }
+
+    // Save Processed Image
+    function saveProcessedImage() {
+      const proc = document.getElementById('imgProc');
+      if (!proc.src || proc.src === window.location.href) {
+        alert("Belum ada citra hasil olahan untuk disimpan!");
+        return;
+      }
+      const a = document.createElement('a');
+      a.href = proc.src;
+      a.download = "processed_image.png";
+      a.click();
+    }
+
+    // Otsu Lock
+    function onSegMethodChange(val) {
+      const slider = document.getElementById('seg_thresh');
+      if (val === 'Otsu') {
+        slider.disabled = true;
+        document.getElementById('lbl_thresh_val').innerText = "Value : Auto (Otsu)";
+      } else {
+        slider.disabled = false;
+        document.getElementById('lbl_thresh_val').innerText = `Value : ${slider.value}`;
+      }
+    }
+
+    // Histogram Modal
+    function toggleHistogramModal(show) {
+      const m = document.getElementById('modalHistogram');
+      if (show) {
+        m.classList.add('show');
+        drawHistogramChart();
+      } else {
+        m.classList.remove('show');
+        document.getElementById('e_hist_toggle').checked = false;
+      }
+    }
+
+    function drawHistogramChart() {
+      const canvas = document.getElementById('histCanvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = canvas.clientWidth;
+      canvas.height = canvas.clientHeight;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#333";
+      ctx.font = "12px Segoe UI";
+      ctx.fillText("Kurva Distribusi Frekuensi Piksel (Intensity 0 - 255)", 20, 25);
+
+      // Dummy smooth curves for visualization
+      const drawCurve = (color, offset) => {
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        for (let x = 0; x < canvas.width - 40; x++) {
+          const normX = x / (canvas.width - 40);
+          const y = canvas.height - 30 - Math.sin(normX * Math.PI * 2 + offset) * 50 - Math.exp(-Math.pow(normX - 0.5, 2) * 10) * 80;
+          if (x === 0) ctx.moveTo(20 + x, y);
+          else ctx.lineTo(20 + x, y);
+        }
+        ctx.stroke();
+      };
+
+      drawCurve("#ef4444", 0);
+      drawCurve("#10b981", 1);
+      drawCurve("#3b82f6", 2);
+    }
+
+    // =========================================================================
+    // APPLY ACTION (KIRIM REQUEST KE API FLASK)
+    // =========================================================================
+    async function onApplyClicked() {
+      if (!rawOrigBase64) {
+        alert("Silakan muat citra terlebih dahulu melalui menu 'File > Browse File'!");
+        return;
+      }
+
+      const params = {};
+      let tabKey = "basic";
+
+      if (activeNavbarTab === "Basic Operation") {
+        tabKey = "basic";
+        params.brightness = document.getElementById('b_bright').value;
+        params.contrast = document.getElementById('b_contrast').value;
+        params.colouring = document.getElementById('b_colouring').value;
+        params.rotate = document.getElementById('b_rotate').value;
+        params.flip = document.getElementById('b_flip').value;
+        params.boolean = document.getElementById('b_bool').value;
+        params.arithmetic = document.getElementById('b_arith').value;
+        params.invert = document.getElementById('b_invert').checked;
+        params.crop_x1 = document.getElementById('crop_x1').value;
+        params.crop_y1 = document.getElementById('crop_y1').value;
+        params.crop_x2 = document.getElementById('crop_x2').value;
+        params.crop_y2 = document.getElementById('crop_y2').value;
+
+      } else if (activeNavbarTab === "Enhancement") {
+        tabKey = "enhancement";
+        params.filter_method = document.getElementById('e_filter').value;
+        params.kernel_size = document.getElementById('e_kernel').value;
+        params.sigma = document.getElementById('e_sigma').value;
+        params.sharpening = document.getElementById('e_sharp').value;
+        params.strength = document.getElementById('e_strength').value;
+        params.equalization = document.getElementById('e_equalize').value;
+
+      } else if (activeNavbarTab === "Noise") {
+        tabKey = "noise";
+        params.noise_type = document.getElementById('n_type').value;
+        params.noise_ratio = document.getElementById('n_ratio').value;
+        params.restoration = document.getElementById('n_resto').value;
+        params.kernel_size = document.getElementById('n_ksize').value;
+
+      } else if (activeNavbarTab === "Edge Detection") {
+        tabKey = "edge";
+        params.operator = document.getElementById('ed_op').value;
+        params.direction = document.getElementById('ed_dir').value;
+        params.kernel_size = document.getElementById('ed_ksize').value;
+        params.lower_thresh = document.getElementById('ed_low_t').value;
+        params.upper_thresh = document.getElementById('ed_up_t').value;
+
+      } else if (activeNavbarTab === "Segmentation") {
+        tabKey = "segmentation";
+        params.method = document.getElementById('seg_method').value;
+        params.thresh_val = document.getElementById('seg_thresh').value;
+        params.thresh_type = document.getElementById('seg_thresh_type').value;
+        params.contour_color = document.getElementById('seg_contour_col').value;
+        params.draw_contours = document.getElementById('seg_draw_cnt').checked;
+        params.line_thickness = document.getElementById('seg_thick').value;
+        params.retrieval_mode = document.getElementById('seg_retrieval').value;
+        params.draw_bb = document.getElementById('seg_draw_bb').checked;
+
+      } else if (activeNavbarTab === "About") {
+        document.getElementById('lblStatusProc').innerText = "Status: Menu About Active";
+        return;
+      }
+
+      document.getElementById('lblStatusProc').innerText = "Processing on server...";
+
+      try {
+        const response = await fetch('/api/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tab: tabKey,
+            image: rawOrigBase64,
+            secondary_image: rawSecBase64,
+            params: params
+          })
+        });
+
+        const resData = await response.json();
+        if (resData.success) {
+          const procImg = document.getElementById('imgProc');
+          procImg.src = resData.result_image;
+          document.getElementById('frameProc').classList.add('has-image');
+
+          // Format status analitik persis seperti wireframe hal. 7
+          if (activeNavbarTab === "Segmentation") {
+            document.getElementById('lblStatusProc').innerText =
+              `${resData.info} (Execution: ${resData.execution_ms} ms)`;
+          } else {
+            document.getElementById('lblStatusProc').innerText =
+              `Status: ${resData.info} (${resData.dimensions}) [${resData.execution_ms} ms]`;
+          }
+        } else {
+          alert("Error: " + resData.error);
+          document.getElementById('lblStatusProc').innerText = "Error: " + resData.error;
+        }
+      } catch (err) {
+        alert("Gagal memproses gambar pada server: " + err);
+        document.getElementById('lblStatusProc').innerText = "Network Error";
+      }
+    }
+  </script>
+</body>
+</html>
