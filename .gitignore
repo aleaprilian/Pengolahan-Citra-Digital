@@ -1,0 +1,17 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# IDE / Editor configuration
+.vscode/
+.idea/
+
+# Temporary test files & archives
+pcd_basic_ops.py
+*.zip
+*.tmp
+*.bak
