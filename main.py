@@ -1088,7 +1088,7 @@ class ImageProcessingApp:
 
     def open_github(self):
         print("[Link] Membuka Repositori GitHub...")
-        webbrowser.open("https://github.com")
+        webbrowser.open("https://github.com/aleaprilian/Pengolahan-Citra-Digital")
 
 
 
